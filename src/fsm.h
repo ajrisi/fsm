@@ -71,6 +71,8 @@ struct transition_s {
      made */
   void (*transfn)(char **data, void *context);
 
+  char *transition_name;
+
 };
 
 /** 

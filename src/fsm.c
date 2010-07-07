@@ -28,6 +28,12 @@ static int run_transition(transition *trans, char **data, void *context)
     /* printf("run_transition error\n"); */
     return -1;
   }
+
+#ifdef FSM_DEBUG
+  if(trans->transition_name != NULL) {
+    printf("attempting transition %s\n", trans->transition_name);
+  }
+#endif
   
   /* switch on the transition type - are we trying to do a string
      match, a single character match, a function execution, or a whole
@@ -39,8 +45,8 @@ static int run_transition(transition *trans, char **data, void *context)
     /* check to see if the string stored in the transition matches the
        string at the beginning of the data - if so, return the length
        of the matched string, if not, then return -1 */
-    printf("run_transition on an exact string\n");
-
+    /* printf("run_transition on an exact string\n"); */
+    
     if(trans->str == NULL) {
       /* if there is no string to match, it is an error */
       return -1;
@@ -60,7 +66,7 @@ static int run_transition(transition *trans, char **data, void *context)
        match the first character of *data - if so, return the number 1
        for one character matched, else, -1 for no transition made */
     int i;
-    printf("run_transition trans on single char\n");
+    /* printf("run_transition trans on single char\n"); */
     if((trans->str == NULL) ||
        (data == NULL)) {
       /* unable to transition on NULL! */
@@ -84,7 +90,7 @@ static int run_transition(transition *trans, char **data, void *context)
        could alter it so that it can be restored after the FSM if it
        could not be completed? This might need to be a version 0.3
        problem */
-    printf("transitioning to another FSM\n");
+    /* printf("transitioning to another FSM\n"); */
 
     if(trans->transition_table == NULL) {
       /* unable to transition on an empty transition table */
@@ -104,7 +110,7 @@ static int run_transition(transition *trans, char **data, void *context)
       return -1;
     }
 
-    printf("run_transition on function\n");
+    /* printf("run_transition on function\n"); */
 
     return trans->action(data, context);
   } break; 
@@ -123,6 +129,7 @@ int run_fsm(transition action_table[], char **data, void *context)
 {
   int current_state = 0;
   int nbytes_processed = 0;
+  int in_accept = 0;
   
   /* all possible states are numbered positively */
   while(current_state >= 0) {
@@ -136,32 +143,63 @@ int run_fsm(transition action_table[], char **data, void *context)
     for(current_trans = action_table; 
 	current_trans->current_state != -1;
 	current_trans++) {
+      /* we need a copy of the data pointer because, if a failing
+	 transition happens where some of the data is processed in
+	 another FSM, we can not have that sub-FSM moving our data
+	 pointer, so we give it a copy, and only let ourselves move it
+	 based on the returned amount of processed bytes */
+      char *data_copy = *data;
 
       /* printf("attempting to transition from %s at state %d\n", *data, current_state); */
 
       /* check to see if the current state is right, and the
 	 transition condition succeeds */
-      if( (current_state == current_trans->current_state) &&
-	  ((nbytes_used_transing = run_transition(current_trans, data, context)) >= 0)) {
-	/* successful transition! run the function to be executed on
-	   transition (if there is one), then move forward the number
-	   of bytes processed in the input stream */
-	/* printf("run_transition success\n"); */
-	if(current_trans->transfn != NULL) {
-	  current_trans->transfn(data, context);
-	}
-	
-	/* move forward the number of bytes used transitioning */
-	nbytes_processed += nbytes_used_transing;
-	*data += nbytes_used_transing;
-	
-	/* change the state to the success state */
-	current_state = current_trans->state_pass;
+      if(current_state == current_trans->current_state) {
+	/* if we are in a transition moving from our current state.. */
+	if((nbytes_used_transing = run_transition(current_trans, &data_copy, context)) >= 0) {
+	  /* successful transition! run the function to be executed on
+	     transition (if there is one), then move forward the number
+	     of bytes processed in the input stream */
+	  /* printf("run_transition success\n"); */
+	  if(current_trans->transfn != NULL) {
+	    current_trans->transfn(data, context);
+	  }
+	  
+	  /* move forward the number of bytes used transitioning */
+	  nbytes_processed += nbytes_used_transing;
+	  *data += nbytes_used_transing;
+	  
+	  /* change the state to the success state */
+	  current_state = current_trans->state_pass;
+	  
+	  /* if the target of this transition was an accept state,
+	     mark that, otherwise, clear the in_accept variable */
+	  in_accept = 0;
+	  if(current_trans->type == ACCEPT) {
+	    in_accept = 1;
+	  } else if (current_trans->type == REJECT) {
+	    /* if we are in a reject state, then we immediately abort */
+	    return -1;
+	  } else {
+	    /* our target was a normal state, nothing special to do */
+	  }
 
-	/* finally, mark this as a successful transition, and break
-	   from the transition-hunting for loop */
-	successful_trans = 1;
-	break;
+
+	  /* printf("transition done, data aligned at %s\n", *data); */
+
+	  /* finally, mark this as a successful transition, and break
+	     from the transition-hunting for loop */
+	  successful_trans = 1;
+	  break;
+	} else {
+	  /* the transition failed. check to see if the state_fail is
+	     positive indicating that there is a state to move to if
+	     this transition fails. if the state_fail is negative, it
+	     just gets ignored */
+	  if(current_trans->state_fail >= 0) {
+	    current_state = current_trans->state_fail;
+	  }
+	}
       }
     }
 
@@ -174,5 +212,7 @@ int run_fsm(transition action_table[], char **data, void *context)
  
   }
 
-  return nbytes_processed;
+  /* return 0 or more if we landed in an ACCEPT state, and -1 if we
+     were unable to use the FSM to parse the input */
+  return (in_accept == 1) ? nbytes_processed : -1;
 }

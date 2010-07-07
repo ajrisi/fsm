@@ -46,14 +46,14 @@ struct bencode_context {
 
 transition integer_fsm[] =
   {
-    {0, EXACT_STRING("i"),               1, -1, NORMAL,                },
+    {0, EXACT_STRING("i"),               1, -1, NORMAL, NULL , "read i indicating integer"},
     {1, EXACT_STRING("-"),               2, -1, NORMAL, make_negative  },
     {1, EXACT_STRING("0"),               3, -1                         },
-    {1, SINGLE_CHARACTER("123456789"),   4, -1, NORMAL, read_digit     },
+    {1, SINGLE_CHARACTER("123456789"),   4, -1, NORMAL, read_digit     , "read digit in integer"},
     {2, EXACT_STRING("0"),               3, -1                         },
-    {2, SINGLE_CHARACTER("123456789"),   4, -1, NORMAL, read_digit     },
+    {2, SINGLE_CHARACTER("123456789"),   4, -1, NORMAL, read_digit     , "read digit in integer"},
     {3, EXACT_STRING("e"),              -1, -1, ACCEPT, finished_int   },
-    {4, SINGLE_CHARACTER("0123456789"),  4, -1, NORMAL, read_digit     },
+    {4, SINGLE_CHARACTER("0123456789"),  4, -1, NORMAL, read_digit     , "read digit in integer"},
     {4, EXACT_STRING("e"),              -1, -1, ACCEPT, finished_int   },
     {-1},
   };
@@ -75,10 +75,10 @@ transition list_fsm[] =
     {1, EXACT_STRING("e"),          -1, -1, ACCEPT              },
     
     /* read an element of the list */
-    {1, FSM(integer_fsm),            1, -1, NORMAL, read_element},
-    {1, FSM(string_fsm),             1, -1, NORMAL, read_element},
-    {1, FSM(list_fsm),               1, -1, NORMAL, read_element},
-    {1, FSM(dict_fsm),               1, -1, NORMAL, read_element},
+    {1, FSM(integer_fsm),            1, -1, NORMAL, read_element, "read a integer list element"},
+    {1, FSM(string_fsm),             1, -1, NORMAL, read_element, "read a string list element"},
+    {1, FSM(list_fsm),               1, -1, NORMAL, read_element, "read a list list element"},
+    {1, FSM(dict_fsm),               1, -1, NORMAL, read_element, "read a dictionary list element"},
     
     {-1},
   };
@@ -104,10 +104,10 @@ transition dict_fsm[] =
 transition bencode_fsm[] = 
   {
     /* read a single bencoded value */
-    {0, FSM(integer_fsm),           -1, -1, ACCEPT },
-    {0, FSM(string_fsm),            -1, -1, ACCEPT },
-    {0, FSM(list_fsm),              -1, -1, ACCEPT },
-    {0, FSM(dict_fsm),              -1, -1, ACCEPT },
+    {0, FSM(integer_fsm),           -1, -1, ACCEPT, NULL, "read an integer" },
+    {0, FSM(string_fsm),            -1, -1, ACCEPT, NULL, "read a string" },
+    {0, FSM(list_fsm),              -1, -1, ACCEPT, NULL, "read a list" },
+    {0, FSM(dict_fsm),              -1, -1, ACCEPT, NULL, "read a dictionary" },
     
     {-1}
   };
@@ -127,7 +127,21 @@ void read_digit(char **data, void *context)
 
 int read_string(char **data, void *context)
 {
-  return 1;
+  /* we used read_digit to build up the ints describing the length of
+     the string, all we need to do now is go ahead and read that many
+     bytes */
+  int strlen;
+  struct bencode_context *bc = (struct bencode_context*)context;
+
+  strlen = bc->int_value;
+
+  printf("read a string %.*s\n", strlen, *data);
+	 
+  /* cleanup the used context variables */
+  bc->int_is_neg = 0;
+  bc->int_value = 0;
+
+  return strlen;
 }
 
 void read_element(char **data, void *context)
