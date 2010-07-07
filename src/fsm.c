@@ -39,7 +39,7 @@ static int run_transition(transition *trans, char **data, void *context)
     /* check to see if the string stored in the transition matches the
        string at the beginning of the data - if so, return the length
        of the matched string, if not, then return -1 */
-    /* printf("run_transition on an exact string\n"); */
+    printf("run_transition on an exact string\n");
 
     if(trans->str == NULL) {
       /* if there is no string to match, it is an error */
@@ -60,7 +60,7 @@ static int run_transition(transition *trans, char **data, void *context)
        match the first character of *data - if so, return the number 1
        for one character matched, else, -1 for no transition made */
     int i;
-    /* printf("run_transition trans on single char\n"); */
+    printf("run_transition trans on single char\n");
     if((trans->str == NULL) ||
        (data == NULL)) {
       /* unable to transition on NULL! */
@@ -84,6 +84,8 @@ static int run_transition(transition *trans, char **data, void *context)
        could alter it so that it can be restored after the FSM if it
        could not be completed? This might need to be a version 0.3
        problem */
+    printf("transitioning to another FSM\n");
+
     if(trans->transition_table == NULL) {
       /* unable to transition on an empty transition table */
       return -1;
@@ -102,7 +104,7 @@ static int run_transition(transition *trans, char **data, void *context)
       return -1;
     }
 
-    /* printf("run_transition on function\n"); */
+    printf("run_transition on function\n");
 
     return trans->action(data, context);
   } break; 
