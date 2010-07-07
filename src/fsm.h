@@ -12,10 +12,11 @@
  */
 
 
-#ifndef DFA_H
-#define DFA_H
+#ifndef FSM_H
+#define FSM_H
 
 enum match_type {
+  INVALID,
   EXACT_STR,
   SINGLE_CHR,
   FSM,
@@ -47,7 +48,7 @@ struct transition_s {
 
   /* when matching against a string, the string is stored in
      command */
-  char *command;
+  char *str;
 
   /* set to value other than NULL if this state will transition to
      another DFA (like DFA macros) */
@@ -84,5 +85,5 @@ struct transition_s {
  */
 int run_fsm(transition action_table[], char **data, void *context);
 
-#endif /* DFA_H */
+#endif /* FSM_H */
 
