@@ -6,5 +6,7 @@ env.Append(LIBS=['fsm']);
 env.Append(LIBPATH=['#src'])
 
 whitespace_example = env.Program('whitespace', ['whitespace.c'])
+bencode_example = env.Program('bencode', ['bencode.c'])
 
 Requires(whitespace_example, libfsm)
+Requires(bencode_example, libfsm)
