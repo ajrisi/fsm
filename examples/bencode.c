@@ -15,6 +15,15 @@
 #include <string.h>
 #include <fsm.h>
 
+#define MAX_INPUT 2048
+
+/* global variables */
+
+/* the number of spaces to print before a value - used to make the
+   output of the program nice and pretty */
+int xsp = 0;
+
+
 /* Private functions */
 void make_negative(char **data, void *context);
 void read_digit(char **data, void *context);
@@ -22,7 +31,18 @@ int read_string(char **data, void *context);
 void read_element(char **data, void *context);
 void read_key(char **data, void *context);
 void read_value(char **data, void *context);
-void finished_int(char **data, void *context);
+
+void start_dict(char **data, void *context);
+void end_dict(char **data, void *context);
+
+void start_list(char **data, void *context);
+void end_list(char **data, void *context);
+
+void integer_start(char **data, void *context);
+void integer_finish(char **data, void *context);
+
+void printxsp();
+
 
 /* do an extern declare here so there are no ordering issues of the
    different FSMs in the source code */
@@ -46,15 +66,15 @@ struct bencode_context {
 
 transition integer_fsm[] =
   {
-    {0, EXACT_STRING("i"),               1, -1, NORMAL, NULL , "read i indicating integer"},
+    {0, EXACT_STRING("i"),               1, -1, NORMAL, integer_start , "read i indicating integer"},
     {1, EXACT_STRING("-"),               2, -1, NORMAL, make_negative  },
     {1, EXACT_STRING("0"),               3, -1                         },
     {1, SINGLE_CHARACTER("123456789"),   4, -1, NORMAL, read_digit     , "read digit in integer"},
     {2, EXACT_STRING("0"),               3, -1                         },
     {2, SINGLE_CHARACTER("123456789"),   4, -1, NORMAL, read_digit     , "read digit in integer"},
-    {3, EXACT_STRING("e"),              -1, -1, ACCEPT, finished_int   },
+    {3, EXACT_STRING("e"),              -1, -1, ACCEPT, integer_finish   },
     {4, SINGLE_CHARACTER("0123456789"),  4, -1, NORMAL, read_digit     , "read digit in integer"},
-    {4, EXACT_STRING("e"),              -1, -1, ACCEPT, finished_int   },
+    {4, EXACT_STRING("e"),              -1, -1, ACCEPT, integer_finish   },
     {-1},
   };
 
@@ -71,8 +91,8 @@ transition string_fsm[] =
 
 transition list_fsm[] =
   {
-    {0, EXACT_STRING("l"),           1, -1                      },
-    {1, EXACT_STRING("e"),          -1, -1, ACCEPT              },
+    {0, EXACT_STRING("l"),           1, -1, NORMAL, start_list  },
+    {1, EXACT_STRING("e"),          -1, -1, ACCEPT, end_list    },
     
     /* read an element of the list */
     {1, FSM(integer_fsm),            1, -1, NORMAL, read_element, "read a integer list element"},
@@ -85,8 +105,8 @@ transition list_fsm[] =
 
 transition dict_fsm[] =
   {
-    {0, EXACT_STRING("d"),           1, -1                    },
-    {1, EXACT_STRING("e"),          -1, -1, ACCEPT            },
+    {0, EXACT_STRING("d"),           1, -1, NORMAL, start_dict},
+    {1, EXACT_STRING("e"),          -1, -1, ACCEPT, end_dict  },
     
     /* read a key */
     {1, FSM(string_fsm),             2, -1, NORMAL, read_key  },
@@ -135,7 +155,8 @@ int read_string(char **data, void *context)
 
   strlen = bc->int_value;
 
-  printf("read a string %.*s\n", strlen, *data);
+  printxsp();
+  printf("%.*s", strlen, *data);
 	 
   /* cleanup the used context variables */
   bc->int_is_neg = 0;
@@ -146,39 +167,92 @@ int read_string(char **data, void *context)
 
 void read_element(char **data, void *context)
 {
+  printf("\n");
 }
 
 void read_key(char **data, void *context)
 {
+  printf(" => \n");
+  xsp++;
 }
 
 void read_value(char **data, void *context)
 {
+  printf("\n");
+  xsp--;
 }
 
-void finished_int(char **data, void *context)
+void start_dict(char **data, void *context)
 {
-  struct bencode_context *bc = (struct bencode_context*)context;
-  printf("read an integer: %d\n", bc->int_value * (bc->int_is_neg == 1 ? -1 : 1));
+  printxsp();
+  printf("{\n");
+  xsp++;
+}
+
+void end_dict(char **data, void *context)
+{
+  xsp--;
+  printxsp();
+  printf("}\n");
+  
+}
+
+void start_list(char **data, void *context)
+{
+  printxsp();
+  printf("[\n");
+  xsp++;
+}
+
+void end_list(char **data, void *context)
+{
+  xsp--;
+  printxsp();
+  printf("]\n");
+  
+}
+
+void integer_start(char **data, void *context)
+{
+  /*
+    struct bencode_context *bc = (struct bencode_context*)context;
+    bc->int_is_neg = 0;
+    bc->int_value = 0;
+  */
+}
+
+void integer_finish(char **data, void *context)
+{
+  struct bencode_context *bc = (struct bencode_context*)context; 
+  printxsp();
+  printf("%d", bc->int_value * (bc->int_is_neg == 1 ? -1 : 1));
+
+
+  /* cleanup */
   bc->int_is_neg = 0;
   bc->int_value = 0;
 }
 
+void printxsp()
+{
+  int i;
+  for(i = 0; i < xsp; i++) printf(" ");
+}
+
 int main(int argc, char **argv)
 {
-
   char *str;
   int ret;
   struct bencode_context context = {0};
 
   /* read a string from the user */
-  str = calloc(256, 1);
+  str = calloc(MAX_INPUT+1, 1);
   if(str == NULL) {
     printf("Unable to allocate string storage space.\n");
     return 1;
   }
   printf("Please enter a string containing whitespace:\n");
-  fgets(str, 255, stdin);
+  fread(str, 1, MAX_INPUT, stdin);
 
   printf("Processing %d byte string...\n", strlen(str));
   /* process string through FSM */
