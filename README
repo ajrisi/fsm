@@ -1,0 +1,10 @@
+Finite State Machine code
+Adam Risi
+
+Using this code This code is presented as if it were a library, but it
+isn't really meant to be used as one. Just copy the 2 files (fsm.c and
+fsm.h) into your own project, then use it from there. Examples of how
+to make your own FSM are in the examples directory.
+
+If you find this code helpful, please email ajrisi@gmail.com with your
+notes. I am always willing to give advice if you get stuck somewhere!
