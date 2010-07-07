@@ -1,0 +1,6 @@
+Import('*')
+
+libfsm = env.StaticLibrary('libfsm', ['fsm.c'])
+
+Export('libfsm')
+

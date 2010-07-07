@@ -1,0 +1,6 @@
+check_all
+*.o
+gmon.out
+*~
+*.gcda
+.scons*
