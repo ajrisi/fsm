@@ -3,7 +3,7 @@ Import('*')
 #add in the chord and check libraries
 env.Append(CPPPATH=['#'])
 env.Append(LIBS=['fsm']);
-env.Append(LIBPATH=['#'])
+env.Append(LIBPATH=['#src'])
 
 whitespace_example = env.Program('whitespace', ['whitespace.c'])
 
