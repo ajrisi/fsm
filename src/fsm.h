@@ -1,3 +1,17 @@
+/**
+ * @file   fsm.h
+ * @author Adam Risi <ajrisi@gmail.com>
+ * @date   Tue Jul  6 20:32:20 2010
+ * 
+ * @brief This is the header file for the Finite State Machine
+ * code. It provides the data structures for the FSM action tables, as
+ * well as the public API declaration for the run_fsm function that
+ * executes an FSM on programmer provided input.
+ * 
+ * 
+ */
+
+
 #ifndef DFA_H
 #define DFA_H
 
@@ -58,9 +72,17 @@ struct transition_s {
 
 };
 
-int match(enum match_type mt, char *haystack, char *needle);
-
-int run_dfa(transition action_table[], int accept_state, char **data, void *context);
+/** 
+ * Run a finite state machine on some data
+ * 
+ * @param action_table the actual finite state machine main table
+ * @param data the data to use while running the FSM
+ * @param context a context - this can be anything the user provides,
+ *                and will be accessible in transition functions, etc.
+ * 
+ * @return 
+ */
+int run_fsm(transition action_table[], char **data, void *context);
 
 #endif /* DFA_H */
 

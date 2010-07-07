@@ -1,14 +1,31 @@
+/**
+ * @file   fsm.c
+ * @author Adam Risi <ajrisi@gmail.com>
+ * @date   Tue Jul  6 20:33:30 2010
+ * 
+ * @brief  This is the Finite State Machine source code.
+ * 
+ * 
+ */
+
+
 #include <string.h>
 #include "fsm.h"
 
-int match(enum match_type mt, char *haystack, char *needle)
+#define FSM_VERSION "0.2"
+
+/* Private Functions */
+static int match(enum match_type mt, char *haystack, char *needle);
+static int run_transition(transition *trans, char **data, void *context);
+
+static int match(enum match_type mt, char *haystack, char *needle)
 {
 
   if(needle == NULL) {
     return 1;
   }
 
-  if(mt == EXACT) {
+  if(mt == SINGLE_CHR) {
     if(strncmp(haystack, needle, strlen(needle)) == 0) {
       return strlen(needle);
       /*return 1;*/
@@ -26,6 +43,12 @@ int match(enum match_type mt, char *haystack, char *needle)
     return 0;
   }
   return 0;
+}
+
+
+static int run_transition(transition *trans, char **data, void *context)
+{
+  return -1;
 }
 
 int run_fsm(transition action_table[], char **data, void *context)
