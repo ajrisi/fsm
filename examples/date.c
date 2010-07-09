@@ -81,21 +81,22 @@ transition wkday_fsm[] =
 
 transition month_fsm[] =
   {
-    {0, EXACT_STRING("Jan"), -1, -1, ACCEPT, NULL, "", (void*)&(struct setmonth_args){0}, set_month},
-    {0, EXACT_STRING("Feb"), -1, -1, ACCEPT},
-    {0, EXACT_STRING("Mar"), -1, -1, ACCEPT},
-    {0, EXACT_STRING("Apr"), -1, -1, ACCEPT},
-    {0, EXACT_STRING("May"), -1, -1, ACCEPT},
-    {0, EXACT_STRING("Jun"), -1, -1, ACCEPT},
-    {0, EXACT_STRING("Jul"), -1, -1, ACCEPT},
-    {0, EXACT_STRING("Aug"), -1, -1, ACCEPT},
-    {0, EXACT_STRING("Sep"), -1, -1, ACCEPT},
-    {0, EXACT_STRING("Oct"), -1, -1, ACCEPT},
-    {0, EXACT_STRING("Nov"), -1, -1, ACCEPT},
-    {0, EXACT_STRING("Dec"), -1, -1, ACCEPT},
+    {0, EXACT_STRING("Jan"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){0} },
+    {0, EXACT_STRING("Feb"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){1} },
+    {0, EXACT_STRING("Mar"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){2} },
+    {0, EXACT_STRING("Apr"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){3} },
+    {0, EXACT_STRING("May"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){4} },
+    {0, EXACT_STRING("Jun"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){5} },
+    {0, EXACT_STRING("Jul"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){6} },
+    {0, EXACT_STRING("Aug"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){7} },
+    {0, EXACT_STRING("Sep"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){8} },
+    {0, EXACT_STRING("Oct"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){9} },
+    {0, EXACT_STRING("Nov"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){10} },
+    {0, EXACT_STRING("Dec"), -1, -1, ACCEPT, set_month, (void*)&(struct setmonth_args){11} },
     {-1}
   };
 
+/* example: Mon Jan  1 12:34:45 2010 */
 transition asctime_date_fsm[] =
   {
     {0, FSM(wkday_fsm), 1, -1},
@@ -203,10 +204,10 @@ int main(int argc, char **argv)
     printf("Unable to allocate string storage space.\n");
     return 1;
   }
-  printf("Please enter a string containing whitespace:\n");
+  printf("Please enter a http-style date:\n");
   fread(str, 1, MAX_INPUT, stdin);
 
-  printf("Processing %d byte string...\n", strlen(str));
+  printf("Processing %d byte string...\n", (int)strlen(str));
   /* process string through FSM */
   ret = run_fsm(http_date_fsm, &str, (void*)&parsed_date);
   if(ret < 0) {

@@ -112,7 +112,7 @@ static int run_transition(transition *trans, char **data, void *context)
 
     /* printf("run_transition on function\n"); */
 
-    return trans->action(data, context);
+    return trans->action(data, context, trans->local_context);
   } break; 
 
   default:
@@ -162,13 +162,9 @@ int run_fsm(transition action_table[], char **data, void *context)
 	     of bytes processed in the input stream */
 	  /* printf("run_transition success\n"); */
 	  if(current_trans->transfn != NULL) {
-	    current_trans->transfn(data, context);
+	    current_trans->transfn(data, context, current_trans->local_context);
 	  }
 
-	  if(current_trans->transfn2 != NULL) {
-	    current_trans->transfn2(data, context, current_trans->local_context);
-	  }
-	  
 	  /* move forward the number of bytes used transitioning */
 	  nbytes_processed += nbytes_used_transing;
 	  *data += nbytes_used_transing;

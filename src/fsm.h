@@ -56,7 +56,7 @@ struct transition_s {
 
   /* a function to execute to check if the transition is valid - must
      return the number of bytes used to transition */
-  int (*action)(char **data, void *context);
+  int (*action)(char **data, void *global_context, void *local_context);
 
   int state_pass;
   int state_fail;
@@ -69,13 +69,11 @@ struct transition_s {
 
   /* a function can be supplied that is executed if this transition is
      made */
-  void (*transfn)(char **data, void *context);
-
-  char *transition_name;
+  void (*transfn)(char **data, void *global_context, void *local_context);
 
   void *local_context;
 
-  void (*transfn2)(char **data, void *global_context, void *local_context);
+  char *transition_name;
 
 };
 

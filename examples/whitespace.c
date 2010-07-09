@@ -16,12 +16,12 @@
 #include <string.h>
 #include <fsm.h>
 
-void print_whitespace(char **data, void *notused)
+void print_whitespace(char **data, void *notused, void *notused2)
 {
   printf(" WHITESPACE ");
 }
 
-int print_char(char **data, void *notused)
+int print_char(char **data, void *notused, void *notused2)
 {
   if(**data == '\0') {
     /* we hit the null character, we are done */
