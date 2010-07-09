@@ -164,6 +164,10 @@ int run_fsm(transition action_table[], char **data, void *context)
 	  if(current_trans->transfn != NULL) {
 	    current_trans->transfn(data, context);
 	  }
+
+	  if(current_trans->transfn2 != NULL) {
+	    current_trans->transfn2(data, context, current_trans->local_context);
+	  }
 	  
 	  /* move forward the number of bytes used transitioning */
 	  nbytes_processed += nbytes_used_transing;

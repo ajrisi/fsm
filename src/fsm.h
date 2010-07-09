@@ -73,6 +73,10 @@ struct transition_s {
 
   char *transition_name;
 
+  void *local_context;
+
+  void (*transfn2)(char **data, void *global_context, void *local_context);
+
 };
 
 /** 

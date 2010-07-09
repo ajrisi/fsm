@@ -7,6 +7,8 @@ env.Append(LIBPATH=['#src'])
 
 whitespace_example = env.Program('whitespace', ['whitespace.c'])
 bencode_example = env.Program('bencode', ['bencode.c'])
+date_example = env.Program('date', ['date.c'])
 
 Requires(whitespace_example, libfsm)
 Requires(bencode_example, libfsm)
+Requires(date_example, libfsm)
