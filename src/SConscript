@@ -1,5 +1,6 @@
 Import('*')
 
+env.Append(CCFLAGS="-DFSM_DEBUG")
 libfsm = env.StaticLibrary('libfsm', ['fsm.c'])
 
 Export('libfsm')
