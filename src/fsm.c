@@ -10,6 +10,11 @@
 
 
 #include <string.h>
+
+#ifdef FSM_DEBUG
+#include <stdio.h>
+#endif
+
 #include "fsm.h"
 
 #define FSM_VERSION "0.2"
@@ -34,7 +39,7 @@ static int run_transition(transition *trans, char **data, void *context)
     printf("attempting transition %s\n", trans->transition_name);
   }
 #endif
-  
+
   /* switch on the transition type - are we trying to do a string
      match, a single character match, a function execution, or a whole
      seperate FSM? */
