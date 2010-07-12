@@ -54,26 +54,6 @@ void set_month(char **data, void *global_context, void *local_context)
   tmp->tm_mon = sma->month_num;
 }
 
-void set_hours(char **data, void *global_context, void *local_context)
-{
-  struct tm *tmp = (struct tm*)global_context;
-}
-
-void set_minutes(char **date, void *global_context, void *local_context)
-{
-  struct tm *tmp = (struct tm*)global_context;
-}
-
-void set_seconds(char **date, void *global_context, void *local_context)
-{
-  struct tm *tmp = (struct tm*)global_context;
-}
-
-void set_year(char **date, void *global_context, void *local_context)
-{
-  struct tm *tmp = (struct tm*)global_context;
-}
-
 struct setweekday_args
 {
   int weekday;
@@ -133,6 +113,110 @@ void set_time(char **date, void *global_context, void *local_context)
 
 }
 
+struct setyear_args
+{
+  enum {
+    YEAR_1,
+    YEAR_2,
+    YEAR_3,
+    YEAR_4
+  } year_component;
+};
+
+void set_year(char **date, void *global_context, void *local_context)
+{
+  struct setyear_args *sya = (struct setyear_args*)local_context;
+  int *tmp = (int*)global_context;
+  int new_digit = (int)(*date[0] - '0');
+  
+  switch(sya->year_component) {
+  case YEAR_1: {
+    *tmp += new_digit * 1000;
+  } break;
+
+  case YEAR_2: {
+    *tmp += new_digit * 100;
+  } break;
+
+  case YEAR_3: {
+    *tmp += new_digit * 10;
+  } break;
+
+  case YEAR_4: {
+    *tmp += new_digit;
+  } break;
+  };
+  
+}
+
+int parse_year4(char **data, void *global_context, void *local_context)
+{
+  struct tm *tmp = (struct tm*)global_context;
+  transition year_fsm[] = 
+    {
+      {0, SINGLE_CHARACTER("0123456789"),  1, -1,  NORMAL, set_year, (void*)&(struct setyear_args){YEAR_1} },
+      {1, SINGLE_CHARACTER("0123456789"),  2, -1,  NORMAL, set_year, (void*)&(struct setyear_args){YEAR_2} },
+      {2, SINGLE_CHARACTER("0123456789"),  3, -1,  NORMAL, set_year, (void*)&(struct setyear_args){YEAR_3} },
+      {3, SINGLE_CHARACTER("0123456789"), -1, -1,  ACCEPT, set_year, (void*)&(struct setyear_args){YEAR_4} },
+      {-1}
+    };
+  int year = 0;
+  int ret;
+
+  ret = run_fsm(year_fsm, data, (void*)&year);
+  if(ret < 0) {
+    return -1;
+  }
+
+  tmp->tm_year = year - 1900;
+  return ret;
+}
+
+int parse_year2(char **data, void *global_context, void *local_context)
+{
+  struct tm *tmp = (struct tm*)global_context;
+  transition year_fsm[] = 
+    {
+      {0, SINGLE_CHARACTER("0123456789"),  1, -1,  NORMAL, set_year, (void*)&(struct setyear_args){YEAR_3} },
+      {1, SINGLE_CHARACTER("0123456789"), -1, -1,  ACCEPT, set_year, (void*)&(struct setyear_args){YEAR_4} },
+      {-1}
+    };
+  int year = 0;
+  int ret;
+
+  ret = run_fsm(year_fsm, data, (void*)&year);
+  if(ret < 0) {
+    return -1;
+  }
+
+  tmp->tm_year = year;
+  return ret;
+}
+
+struct setdom_args {
+  enum {
+    DAY_HIGH,
+    DAY_LOW
+  } day_component;
+};
+
+void set_dom(char **date, void *global_context, void *local_context)
+{
+  struct setdom_args *sda = (struct setdom_args*)local_context;
+  struct tm *tmp = (struct tm*)global_context;
+  int new_digit = (int)(*date[0] - '0');
+  
+  switch(sda->day_component) {  
+  case DAY_HIGH: {
+    tmp->tm_mday = 10 * new_digit;
+  } break;
+
+  case DAY_LOW: {
+    tmp->tm_mday += new_digit;
+  } break;
+  };
+}
+
 transition time_fsm[] =
   {
     {0, SINGLE_CHARACTER("0123456789"),  1, -1, NORMAL, set_time, (void*)&(struct settime_args){HOURS_HIGH}   },
@@ -179,61 +263,63 @@ transition month_fsm[] =
 /* example: Mon Jan  1 12:34:45 2010 */
 transition asctime_date_fsm[] =
   {
-    {0,  FSM(wkday_fsm),                  1, -1, NORMAL, NULL, NULL, "weekday in asctime"},
+    {0,  FSM(wkday_fsm),                  1, -1, NORMAL, NULL, NULL, "weekday in asctime"                },
     
-    {1,  EXACT_STRING(" "),               2, -1                                          },
+    {1,  EXACT_STRING(" "),               2, -1                                                          },
 
     /* date 3 */
-    {2,  FSM(month_fsm),                  3, -1                                          },
+    {2,  FSM(month_fsm),                  3, -1                                                          },
 
-    {3,  EXACT_STRING(" "),               4, -1                                          },
+    {3,  EXACT_STRING(" "),               4, -1                                                          },
     
-    {4,  SINGLE_CHARACTER("0123456789"),  5, -1                                          },
-    {4,  EXACT_STRING(" "),               5, -1                                          },
-    {5,  SINGLE_CHARACTER("0123456789"),  6, -1                                          },
+    {4,  SINGLE_CHARACTER("0123456789"),  5, -1, NORMAL, set_dom, (void*)&(struct setdom_args){DAY_HIGH} },
+    {4,  EXACT_STRING(" "),               5, -1                                                          },
+    {5,  SINGLE_CHARACTER("0123456789"),  6, -1, NORMAL, set_dom, (void*)&(struct setdom_args){DAY_LOW}  },
 
-    {6,  EXACT_STRING(" "),               7, -1                                          },
-    {7,  FSM(time_fsm),                   8, -1                                          },
+    {6,  EXACT_STRING(" "),               7, -1                                                          },
+    {7,  FSM(time_fsm),                   8, -1                                                          },
     
-    {8,  EXACT_STRING(" "),               9, -1                                          },
-    {9,  SINGLE_CHARACTER("0123456789"), 10, -1                                          },
-    {10, SINGLE_CHARACTER("0123456789"), 11, -1                                          },
-    {11, SINGLE_CHARACTER("0123456789"), 12, -1                                          },
-    {12, SINGLE_CHARACTER("0123456789"), -1, -1, ACCEPT                                  },
+    {8,  EXACT_STRING(" "),               9, -1                                                          },
     
+    {9, FUNCTION(parse_year4),           -1, -1, ACCEPT                                                  },
+   
     {-1}
   };
 
 
-/* example: Monday, 01-01-10 12:34:56 GMT */
+/* example: Monday, 01-Jan-10 12:34:56 GMT */
 transition rfc850_date_fsm[] = 
   {
     /* weekday */
-    {0,  EXACT_STRING("Monday"),    1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){1} },
-    {0,  EXACT_STRING("Tuesday"),   1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){2} },
-    {0,  EXACT_STRING("Wednesday"), 1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){3} },
-    {0,  EXACT_STRING("Thursday"),  1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){4} },
-    {0,  EXACT_STRING("Friday"),    1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){5} },
-    {0,  EXACT_STRING("Saturday"),  1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){6} },
-    {0,  EXACT_STRING("Sunday"),    1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){0} },
+    {0,  EXACT_STRING("Monday"),    1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){1}     },
+    {0,  EXACT_STRING("Tuesday"),   1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){2}     },
+    {0,  EXACT_STRING("Wednesday"), 1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){3}     },
+    {0,  EXACT_STRING("Thursday"),  1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){4}     },
+    {0,  EXACT_STRING("Friday"),    1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){5}     },
+    {0,  EXACT_STRING("Saturday"),  1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){6}     },
+    {0,  EXACT_STRING("Sunday"),    1, -1, NORMAL, set_weekday, (void*)&(struct setweekday_args){0}     },
 
-    {1,  EXACT_STRING(", "), 2, -1                                                                  },
+    {1,  EXACT_STRING(", "), 2, -1                                                                      },
 
     /* date2 */
-    {2,  SINGLE_CHARACTER("0123456789"), 3, -1                                                      },
-    {3,  SINGLE_CHARACTER("0123456789"), 4, -1                                                      },
-    {4,  EXACT_STRING("-"),              5, -1                                                      },
-    {5,  FSM(month_fsm),                 6, -1                                                      },
-    {6,  EXACT_STRING("-"),              7, -1                                                      },
-    {7,  SINGLE_CHARACTER("0123456789"), 8, -1                                                      },
-    {8,  SINGLE_CHARACTER("0123456789"), 9, -1                                                      },
+    {2,  SINGLE_CHARACTER("0123456789"), 3, -1, NORMAL, set_dom, (void*)&(struct setdom_args){DAY_HIGH} },
+    {3,  SINGLE_CHARACTER("0123456789"), 4, -1, NORMAL, set_dom, (void*)&(struct setdom_args){DAY_LOW}  },
+    {4,  EXACT_STRING("-"),              5, -1                                                          },
+    {5,  FSM(month_fsm),                 6, -1                                                          },
+    {6,  EXACT_STRING("-"),              7, -1                                                          },
+    {7,  FUNCTION(parse_year2),          9, -1                                                          },
 
-    {9,  EXACT_STRING(" "),             10, -1                                                      },
+    /*
+    {7,  SINGLE_CHARACTER("0123456789"), 8, -1, NORMAL, set_year, (void*)&(struct setyear_args){YEAR_3} },
+    {8,  SINGLE_CHARACTER("0123456789"), 9, -1, NORMAL, set_year, (void*)&(struct setyear_args){YEAR_4} },
+    */
+
+    {9,  EXACT_STRING(" "),             10, -1                                                          },
     
     /* time */
-    {10, FSM(time_fsm),                11, -1                                                       },
+    {10, FSM(time_fsm),                11, -1                                                           },
 
-    {11, EXACT_STRING(" GMT"),         -1, -1, ACCEPT                                               },
+    {11, EXACT_STRING(" GMT"),         -1, -1, ACCEPT                                                   },
 
     {-1}
   };
@@ -242,27 +328,32 @@ transition rfc850_date_fsm[] =
 /* example: Mon, 01 Jan 2010 12:34:56 GMT */
 transition rfc1123_date_fsm[] =
   {
-    {0, FSM(wkday_fsm),                   1, -1        },
+    {0, FSM(wkday_fsm),                   1, -1                                                          },
 
-    {1, EXACT_STRING(", "),               2, -1        },
+    {1, EXACT_STRING(", "),               2, -1                                                          },
 
     /* date1 */
-    {2, SINGLE_CHARACTER("0123456789"),   3, -1        },
-    {3, SINGLE_CHARACTER("0123456789"),   4, -1        },
-    {4, EXACT_STRING(" "),                5, -1        },
-    {5, FSM(month_fsm),                   6, -1        },
-    {6, EXACT_STRING(" "),                7, -1        },
-    {7, SINGLE_CHARACTER("0123456789"),   8, -1        },
-    {8, SINGLE_CHARACTER("0123456789"),   9, -1        },
-    {9, SINGLE_CHARACTER("0123456789"),  10, -1        },
-    {10, SINGLE_CHARACTER("0123456789"), 11, -1        },
+    {2, SINGLE_CHARACTER("0123456789"),   3, -1, NORMAL, set_dom, (void*)&(struct setdom_args){DAY_HIGH} },
+    {3, SINGLE_CHARACTER("0123456789"),   4, -1, NORMAL, set_dom, (void*)&(struct setdom_args){DAY_HIGH} },
+    {4, EXACT_STRING(" "),                5, -1                                                          },
+    {5, FSM(month_fsm),                   6, -1                                                          },
+    {6, EXACT_STRING(" "),                7, -1                                                          },
 
-    {11, EXACT_STRING(" "),              12, -1        },
+    /*
+    {7, SINGLE_CHARACTER("0123456789"),   8, -1, NORMAL, set_year, (void*)&(struct setyear_args){YEAR_1} },
+    {8, SINGLE_CHARACTER("0123456789"),   9, -1, NORMAL, set_year, (void*)&(struct setyear_args){YEAR_2} },
+    {9, SINGLE_CHARACTER("0123456789"),  10, -1, NORMAL, set_year, (void*)&(struct setyear_args){YEAR_3} },
+    {10, SINGLE_CHARACTER("0123456789"), 11, -1, NORMAL, set_year, (void*)&(struct setyear_args){YEAR_4} },
+    */
+
+    {7, FUNCTION(parse_year4),           11, -1                                                          },
+
+    {11, EXACT_STRING(" "),              12, -1                                                          },
     
     /* time */
-    {12, FSM(time_fsm),                  13, -1        },
+    {12, FSM(time_fsm),                  13, -1                                                          },
 
-    {13, EXACT_STRING(" GMT"),           -1, -1, ACCEPT},
+    {13, EXACT_STRING(" GMT"),           -1, -1, ACCEPT                                                  },
 
     {-1}
   };
@@ -298,9 +389,11 @@ int main(int argc, char **argv)
   ret = run_fsm(http_date_fsm, &str, (void*)&parsed_date);
   if(ret < 0) {
     printf("Unable to execute FSM on string: %s\n", str);
-  } else {
-    printf("\nFSM Done - processed %d characters.\n", ret);
+    return EXIT_FAILURE;
   }
-
+  
+  printf("\nFSM Done - processed %d characters.\n", ret);
+  printf("Parsed time is %s\n", asctime(&parsed_date));
+ 
   return 0;
 }
