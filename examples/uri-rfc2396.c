@@ -1,13 +1,12 @@
 /**
- * @file   http-request.c
+ * @file   uri-rfc2396.c
  * @author Adam Risi <ajrisi@gmail.com>
- * @date   Fri Jul  9 11:17:06 2010
+ * @date   Mon Aug 30 21:54:17 2010
  * 
- * @brief An example of how to use a FSM to do URI parsing
+ * @brief  An example of how to do URI (RFC 2396 style) parsing
  * 
  * 
  */
-
 
 #include <stdio.h>
 #include <stdlib.h>
