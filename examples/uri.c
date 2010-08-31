@@ -442,7 +442,7 @@ int main(int argc, char **argv)
     printf("Unable to allocate string storage space.\n");
     return 1;
   }
-  printf("Please enter a http-style date:\n");
+  printf("Please enter a URI:\n");
   fgets(str, MAX_INPUT, stdin);
 
   printf("Processing %d byte string...\n", (int)strlen(str));
