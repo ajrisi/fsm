@@ -33,7 +33,7 @@ typedef struct transition_s transition;
 struct transition_s {
   int current_state;
 
-  /* the next three areguments are the type of match required for this
+  /* the next three arguments are the type of match required for this
      transition, and the data needed to make that match. A macro is
      used so there arent ugly NULLs too much in the table (also makes
      it easier to read) */
@@ -41,6 +41,7 @@ struct transition_s {
 #define SINGLE_CHARACTER(x) SINGLE_CHR, x,    NULL, NULL
 #define FSM(x)              FSM,        NULL, x,    NULL
 #define FUNCTION(x)         FUNC,       NULL, NULL, x
+#define NOTHING             EXACT_STR, "",    NULL, NULL
 
   /* an internal variable, used for storing this transitions match
      type */
