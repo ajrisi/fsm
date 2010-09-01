@@ -106,19 +106,19 @@
 
 transition alpha_fsm[] = 
   {
-    { 0, SINGLE_CHARACTER("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"), -1, -1, ACCEPT },
+    { 0, SINGLE_CHARACTER("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"), -1, -1, ACCEPT, NULL, NULL, "single character-alpha" },
     {-1}
   };
 
 transition digit_fsm[] = 
   {
-    { 0, SINGLE_CHARACTER("0123456789"), -1, -1, ACCEPT },
+    { 0, SINGLE_CHARACTER("0123456789"), -1, -1, ACCEPT, NULL, NULL, "single character-digit" },
     {-1}
   };
 
 transition hexdig_fsm[] = 
   {
-    {0, FSM(digit_fsm), -1, -1, ACCEPT },
+    {0, FSM(digit_fsm),                   -1, -1, ACCEPT },
     {0, SINGLE_CHARACTER("ABCDEFabcdef"), -1, -1, ACCEPT },
     {-1}
   };
@@ -127,13 +127,13 @@ transition hexdig_fsm[] =
 
 transition sub_delims_fsm[] = 
   {
-    { 0, SINGLE_CHARACTER("!$&\'()*+,;="), -1, -1, ACCEPT },
+    { 0, SINGLE_CHARACTER("!$&\'()*+,;="), -1, -1, ACCEPT, NULL, NULL, "single character-sub delims"},
     {-1}
   };
 
 transition gen_delims_fsm[] = 
   {
-    { 0, SINGLE_CHARACTER(":/?#[]@"), -1, -1, ACCEPT },
+    { 0, SINGLE_CHARACTER(":/?#[]@"), -1, -1, ACCEPT, NULL, NULL, "single character-gen delims" },
     {-1}
   };
 
@@ -146,9 +146,9 @@ transition reserved_fsm[] =
 
 transition unreserved_fsm[] =
   {
-    {0, FSM(alpha_fsm),  -1, -1, ACCEPT },
-    {0, FSM(digit_fsm), -1, -1, ACCEPT },
-    {0, SINGLE_CHARACTER("-._~"), -1, -1, ACCEPT },
+    {0, FSM(alpha_fsm),           -1, -1, ACCEPT, NULL, NULL, "alpha" },
+    {0, FSM(digit_fsm),           -1, -1, ACCEPT, NULL, NULL, "digit" },
+    {0, SINGLE_CHARACTER("-._~"), -1, -1, ACCEPT, NULL, NULL, "single character" },
     {-1}
   };
 
@@ -208,7 +208,8 @@ transition segment_nz_fsm[] =
 
 transition segment_fsm[] =
   {
-    {0, FSM(pchar_fsm), 0, -1, ACCEPT},
+    {0, FSM(pchar_fsm), 0, -1, ACCEPT, NULL, NULL, "pchar"},
+    {0, NOTHING,       -1, -1, ACCEPT, NULL, NULL, "matching nothing-pchar"},
     {-1}
   };
 
@@ -245,9 +246,9 @@ transition path_absolute_fsm[] =
 
 transition path_abempty_fsm[] =
   {
-    {0, EXACT_STRING("/"), 1, -1},
-    {0, NOTHING, -1, -1, ACCEPT},
-    {1, FSM(segment_fsm), 0, -1, ACCEPT},
+    {0, EXACT_STRING("/"), 1, -1, NORMAL, NULL, NULL, "matching a /"},
+    {0, NOTHING,          -1, -1, ACCEPT, NULL, NULL, "null transition"},
+    {1, FSM(segment_fsm),  0, -1, ACCEPT, NULL, NULL, "segment"},
     {-1}
   };
 
@@ -263,10 +264,10 @@ transition path_fsm[] =
 
 transition reg_name_fsm[] =
   {
-    {0, FSM(unreserved_fsm), 0, -1, ACCEPT},
-    {0, FSM(pct_encoded_fsm), 0, -1, ACCEPT},
-    {0, FSM(sub_delims_fsm), 0, -1, ACCEPT},
-    {0, NOTHING, -1, -1, ACCEPT},
+    {0, FSM(unreserved_fsm),  0, -1, ACCEPT, NULL, NULL, "unreserved"},
+    {0, FSM(pct_encoded_fsm), 0, -1, ACCEPT, NULL, NULL, "pct encoded"},
+    {0, FSM(sub_delims_fsm),  0, -1, ACCEPT, NULL, NULL, "sub delims"},
+    {0, NOTHING,             -1, -1, ACCEPT, NULL, NULL, "null transition"},
     {-1}
   };
 
@@ -560,9 +561,9 @@ transition port_fsm[] =
 
 transition host_fsm[] =
     {
-      {0, FSM(ip_literal_fsm),  -1, -1, ACCEPT},      
-      {0, FSM(ipv4address_fsm), -1, -1, ACCEPT},      
-      {0, FSM(reg_name_fsm),    -1, -1, ACCEPT},      
+      {0, FSM(ip_literal_fsm),  -1, -1, ACCEPT, NULL, NULL, "ip literal"},
+      {0, FSM(ipv4address_fsm), -1, -1, ACCEPT, NULL, NULL, "ipv4address"},      
+      {0, FSM(reg_name_fsm),    -1, -1, ACCEPT, NULL, NULL, "reg name"},      
       {-1}
     };
 
@@ -571,29 +572,29 @@ transition userinfo_fsm[] =
       {0, FSM(unreserved_fsm),  0, -1, ACCEPT},
       {0, FSM(pct_encoded_fsm), 0, -1, ACCEPT},
       {0, FSM(sub_delims_fsm),  0, -1, ACCEPT},
-      {0, EXACT_STRING(":"),    0, -1, ACCEPT},
+      {0, EXACT_STRING(":"),    0, -1, ACCEPT, NULL, NULL, "matching : in userinfo"},
       {0, NOTHING,             -1, -1, ACCEPT},
       {-1}
     };
 
 transition authority_fsm_1[] =
     {
-      {0, FSM(userinfo_fsm),  1, -1},
-      {1, EXACT_STRING("@"), -1, -1, ACCEPT},
+      {0, FSM(userinfo_fsm),  1, -1, NORMAL, NULL, NULL, "userinfo"},
+      {1, EXACT_STRING("@"), -1, -1, ACCEPT, NULL, NULL, "matching a @"},
       {-1}
     };
     
 transition authority_fsm_2[] =
     {
-      {0, EXACT_STRING(":"), 1, -1},
-      {1, FSM(port_fsm),    -1, -1, ACCEPT},
+      {0, EXACT_STRING(":"), 1, -1, NORMAL, NULL, NULL, "matching a :"},
+      {1, FSM(port_fsm),    -1, -1, ACCEPT, NULL, NULL, "port"},
       {-1}
     };
 
 transition authority_fsm[] =
     {
       {0, FSM(authority_fsm_1),  1, 1},
-      {1, FSM(host_fsm),         2, -1, ACCEPT},
+      {1, FSM(host_fsm),         2, -1, ACCEPT, NULL, NULL, "host"},
       {2, FSM(authority_fsm_2), -1, -1, ACCEPT},
       {-1}
     };
@@ -645,13 +646,13 @@ transition relative_ref_fsm[] =
 
 transition hier_part_fsm[] =
     {
-      {0, EXACT_STRING("//"),      1, -1},
-      {0, FSM(path_absolute_fsm), -1, -1, ACCEPT},
-      {0, FSM(path_rootless_fsm), -1, -1, ACCEPT},
-      {0, FSM(path_empty_fsm),    -1, -1, ACCEPT},
+      {0, EXACT_STRING("//"),      1, -1, NORMAL, NULL, NULL, "matching //"},
+      {0, FSM(path_absolute_fsm), -1, -1, ACCEPT, NULL, NULL, "path_absolute"},
+      {0, FSM(path_rootless_fsm), -1, -1, ACCEPT, NULL, NULL, "path rootless"},
+      {0, FSM(path_empty_fsm),    -1, -1, ACCEPT, NULL, NULL, "path empty"},
    
-      {1, FSM(authority_fsm),      2, -1},
-      {2, FSM(path_abempty_fsm),  -1, -1, ACCEPT},
+      {1, FSM(authority_fsm),      2, -1, NORMAL, NULL, NULL, "authority"},
+      {2, FSM(path_abempty_fsm),  -1, -1, ACCEPT, NULL, NULL, "path abempty"},
       {-1}
     };
 
@@ -665,7 +666,7 @@ transition absolute_uri_fsm_1[] =
 transition absolute_uri_fsm[] =
     {
       {0, FSM(scheme_fsm),          1, -1},
-      {1, EXACT_STRING(":"),        2, -1},
+      {1, EXACT_STRING(":"),        2, -1, NORMAL, NULL, NULL, "matching :"},
       {2, FSM(hier_part_fsm),       3, -1, ACCEPT},
       {3, FSM(absolute_uri_fsm_1), -1, -1, ACCEPT},
       {-1}
@@ -687,9 +688,9 @@ transition uri_fsm_2[] =
 
 transition uri_fsm[] =
     {
-      {0, FSM(scheme_fsm),     1, -1},
-      {1, EXACT_STRING(":"),   2, -1},
-      {2, FSM(hier_part_fsm),  3, -1, ACCEPT},
+      {0, FSM(scheme_fsm),     1, -1, NORMAL, NULL, NULL, "scheme"},
+      {1, EXACT_STRING(":"),   2, -1, NORMAL, NULL, NULL, "matching : in uri"},
+      {2, FSM(hier_part_fsm),  3, -1, ACCEPT, NULL, NULL, "hier-part"},
       {3, FSM(uri_fsm_1),      4, -1, ACCEPT},
       {4, FSM(uri_fsm_2),     -1, -1, ACCEPT},
       {-1}
@@ -697,8 +698,8 @@ transition uri_fsm[] =
 
 transition uri_reference_fsm[] =
     {
-      {0, FSM(uri_fsm),          -1, -1, ACCEPT},
-      {0, FSM(relative_ref_fsm), -1, -1, ACCEPT},
+      {0, FSM(uri_fsm),          -1, -1, ACCEPT, NULL, NULL, "uri"},
+      {0, FSM(relative_ref_fsm), -1, -1, ACCEPT, NULL, NULL, "relative ref"},
       {-1}
     };
 
