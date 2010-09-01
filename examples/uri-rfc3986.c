@@ -624,15 +624,15 @@ transition relative_part_fsm[] =
 
 transition relative_ref_fsm_1[] =
     {
-      {0, EXACT_STRING("?"), 1, -1},
-      {1, FSM(query_fsm),   -1, -1, ACCEPT},
+      {0, EXACT_STRING("?"), 1, -1, NORMAL, NULL, NULL, "matching ?-query"},
+      {1, FSM(query_fsm),   -1, -1, ACCEPT, NULL, NULL, "query"},
       {-1}
     };
 
 transition relative_ref_fsm_2[] =
     {
-      {0, EXACT_STRING("#"),    1, -1},
-      {1, FSM(fragment_fsm),   -1, -1, ACCEPT},
+      {0, EXACT_STRING("#"),    1, -1, NORMAL, NULL, NULL, "matching #-fragment"},
+      {1, FSM(fragment_fsm),   -1, -1, ACCEPT, NULL, NULL, "fragment"},
       {-1}
     };
 
@@ -674,15 +674,15 @@ transition absolute_uri_fsm[] =
 
 transition uri_fsm_1[] =
     {
-      {0, EXACT_STRING("?"), 1, -1},
-      {1, FSM(query_fsm),   -1, -1, ACCEPT},
+      {0, EXACT_STRING("?"), 1, -1, NORMAL, NULL, NULL, "matching ?-query"},
+      {1, FSM(query_fsm),   -1, -1, ACCEPT, NULL, NULL, "query"},
       {-1}
     };
 
 transition uri_fsm_2[] =
     {
-      {0, EXACT_STRING("#"),    1, -1},
-      {1, FSM(fragment_fsm),   -1, -1, ACCEPT},
+      {0, EXACT_STRING("#"),    1, -1, NORMAL, NULL, NULL, "matching #-fagment"},
+      {1, FSM(fragment_fsm),   -1, -1, ACCEPT, NULL, NULL, "fragment"},
       {-1}
     };
 
@@ -705,11 +705,11 @@ transition uri_reference_fsm[] =
 
 int main(int argc, char **argv)
 {
-  char *str;
+  char *str, *ostr;
   int ret;
  
   /* read a string from the user */
-  str = calloc(MAX_INPUT+1, 1);
+  str = ostr = calloc(MAX_INPUT+1, 1);
   if(str == NULL) {
     printf("Unable to allocate string storage space.\n");
     return 1;
@@ -725,7 +725,7 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
   
-  printf("\nFSM Done - processed %d characters.\n", ret);
+  printf("\nFSM Done - processed %d characters: \"%.*s\".\n", ret, ret, ostr);
  
   return 0;
 }
