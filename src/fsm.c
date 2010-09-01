@@ -17,7 +17,10 @@
 
 #include "fsm.h"
 
-#define FSM_VERSION "0.2"
+#define FSM_VERSION "0.2.1"
+
+int depth = 0;
+
 
 /* Private Functions */
 static int run_transition(transition *trans, char **data, void *context);
@@ -35,7 +38,9 @@ static int run_transition(transition *trans, char **data, void *context)
   }
 
 #ifdef FSM_DEBUG
+  depth++;
   if(trans->transition_name != NULL) {
+    int i; for(i = 0; i < depth; i++) printf(" ");
     printf("attempting transition %s\n", trans->transition_name);
   }
 #endif
@@ -59,9 +64,19 @@ static int run_transition(transition *trans, char **data, void *context)
     if(memcmp(*data, trans->str, strlen(trans->str)) == 0) {
       /* the string matched, return the length of the matched
 	 string */
+#ifdef FSM_DEBUG
+      if(trans->transition_name != NULL) {
+	int i; for(i = 0; i < depth; i++) printf(" ");
+	printf("made transition %s with string %s\n", trans->transition_name, trans->str);
+      }
+      depth--;
+#endif
       return strlen(trans->str);
     } else {
       /* no matching string, return -1 for no transition made */
+#ifdef FSM_DEBUG
+      depth--;
+#endif
       return -1;
     }
   } break;
@@ -80,11 +95,21 @@ static int run_transition(transition *trans, char **data, void *context)
 
     for(i = 0; i < strlen(trans->str); i++) {
       if(*data[0] == trans->str[i]) {
+#ifdef FSM_DEBUG
+	if(trans->transition_name != NULL) {
+	  int j; for(j = 0; j < depth; j++) printf(" ");
+	  printf("made transition %s with character %c\n", trans->transition_name, trans->str[i]);
+	}
+	depth--;
+#endif
 	return 1;
       }
     }
 
     /* no single character match made, return -1 */
+#ifdef FSM_DEBUG
+    depth--;
+#endif
     return -1;
   } break;
 
@@ -96,16 +121,32 @@ static int run_transition(transition *trans, char **data, void *context)
        could not be completed? This might need to be a version 0.3
        problem */
     /* printf("transitioning to another FSM\n"); */
-
+    
+#ifdef FSM_DEBUG
+    int ret;
+#endif
+    
     if(trans->transition_table == NULL) {
       /* unable to transition on an empty transition table */
       return -1;
     }
-
+    
+#ifdef FSM_DEBUG
+    ret = run_fsm(trans->transition_table, data, context);
+    if(ret >= 0) {
+      if(trans->transition_name != NULL) {
+	int i; for(i = 0; i < depth; i++) printf(" ");
+	printf("made transition %s with FSM\n", trans->transition_name);
+      }
+    }
+    depth--;
+    return ret;
+#else
     return run_fsm(trans->transition_table, data, context);
-
+#endif
+    
   } break;
-
+    
   case FUNC: {
     /* here, we run a function, and use its output to determine if we
        are going to transition or not. The function should act just
