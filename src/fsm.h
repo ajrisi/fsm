@@ -15,19 +15,24 @@
 #ifndef FSM_H
 #define FSM_H
 
+#define FSM_VERSION "0.3"
+
 enum match_type {
   INVALID,
   EXACT_STR,
   SINGLE_CHR,
-  FSM,
-  FUNC,
+  SUBFSM,
+  FUNC
 };
 
 enum state_type {
   NORMAL = 0,
   ACCEPT,
-  REJECT,
+  REJECT
 };
+
+typedef void*(*dup_fn)(void*);
+typedef void(*free_fn)(void*);
 
 typedef struct transition_s transition;
 struct transition_s {
@@ -37,11 +42,11 @@ struct transition_s {
      transition, and the data needed to make that match. A macro is
      used so there arent ugly NULLs too much in the table (also makes
      it easier to read) */
-#define EXACT_STRING(x)     EXACT_STR,  x,    NULL, NULL
-#define SINGLE_CHARACTER(x) SINGLE_CHR, x,    NULL, NULL
-#define FSM(x)              FSM,        NULL, x,    NULL
-#define FUNCTION(x)         FUNC,       NULL, NULL, x
-#define NOTHING             EXACT_STR, "",    NULL, NULL
+#define EXACT_STRING(x)     EXACT_STR,     x,    NULL, NULL
+#define SINGLE_CHARACTER(x) SINGLE_CHR,    x,    NULL, NULL
+#define FSM(x)              SUBFSM,     NULL,       x, NULL
+#define FUNCTION(x)         FUNC,       NULL,    NULL, x
+#define NOTHING             EXACT_STR,    "",    NULL, NULL
 
   /* an internal variable, used for storing this transitions match
      type */
@@ -70,7 +75,7 @@ struct transition_s {
 
   /* a function can be supplied that is executed if this transition is
      made */
-  void (*transfn)(char **data, void *global_context, void *local_context);
+  void (*transfn)(char **data, int nbytes_used_transing, void *global_context, void *local_context);
 
   void *local_context;
 
@@ -85,10 +90,13 @@ struct transition_s {
  * @param data the data to use while running the FSM
  * @param context a context - this can be anything the user provides,
  *                and will be accessible in transition functions, etc.
+ * @param dup_context a function which will duplicate the context
+ * @param free_context a function which will free the memory
+ *                     associated with a context
  * 
  * @return 
  */
-int run_fsm(transition action_table[], char **data, void *context);
+int run_fsm(transition action_table[], char **data, void **context, dup_fn dup_context, free_fn free_context);
 
 #endif /* FSM_H */
 

@@ -17,15 +17,13 @@
 
 #include "fsm.h"
 
-#define FSM_VERSION "0.2.1"
-
 int depth = 0;
 
 
 /* Private Functions */
-static int run_transition(transition *trans, char **data, void *context);
+static int run_transition(transition *trans, char **data, void **context, dup_fn dup_context, free_fn free_context);
 
-static int run_transition(transition *trans, char **data, void *context)
+static int run_transition(transition *trans, char **data, void **context, dup_fn dup_context, free_fn free_context)
 {
   /* printf("run_transition\n"); */
 
@@ -87,8 +85,7 @@ static int run_transition(transition *trans, char **data, void *context)
        for one character matched, else, -1 for no transition made */
     int i;
     /* printf("run_transition trans on single char\n"); */
-    if((trans->str == NULL) ||
-       (data == NULL)) {
+    if(trans->str == NULL) {
       /* unable to transition on NULL! */
       return -1;
     }
@@ -113,7 +110,7 @@ static int run_transition(transition *trans, char **data, void *context)
     return -1;
   } break;
 
-  case FSM: {
+  case SUBFSM: {
     /* here, we want to run a FSM, and use its output to determine if
        a transition could be made - in interesting question arises -
        how do we preserve the context before traveling down a FSM that
@@ -121,29 +118,44 @@ static int run_transition(transition *trans, char **data, void *context)
        could not be completed? This might need to be a version 0.3
        problem */
     /* printf("transitioning to another FSM\n"); */
-    
-#ifdef FSM_DEBUG
+    void *context_copy;
     int ret;
-#endif
-    
+
     if(trans->transition_table == NULL) {
       /* unable to transition on an empty transition table */
       return -1;
     }
-    
-#ifdef FSM_DEBUG
-    ret = run_fsm(trans->transition_table, data, context);
+
+    /* make a copy of the context so that if the sub-FSM succeeds,
+       then we keep the new copy, and if it fails, we keep the old
+       one */
+    context_copy = dup_context(*context);
+    if(context_copy == NULL) {
+      /* there was a problem with making a copy of the context - abort! */
+      return -1;
+    }
+
+    /* run the sub FSM on the copy of the context */
+    ret = run_fsm(trans->transition_table, data, &context_copy, dup_context, free_context);    
+
     if(ret >= 0) {
+      /* successful sub FSM  - keep the new context and free the old one */
+      free_context(*context);
+      *context = context_copy;
+
+#ifdef FSM_DEBUG
       if(trans->transition_name != NULL) {
 	int i; for(i = 0; i < depth; i++) printf(" ");
 	printf("made transition %s with FSM\n", trans->transition_name);
       }
-    }
-    depth--;
-    return ret;
-#else
-    return run_fsm(trans->transition_table, data, context);
+      depth--;
 #endif
+    } else {
+      /* sub FSM failed, free the duplicated context */
+      free_context(context_copy);
+    }
+
+    return ret;
     
   } break;
     
@@ -152,14 +164,37 @@ static int run_transition(transition *trans, char **data, void *context)
        are going to transition or not. The function should act just
        like run_transition - it should return -1 on no transition, and
        0 or more on transition */
+    int ret;
+    void *context_copy;
+
     if(trans->action == NULL) {
       return -1;
     }
 
-    /* printf("run_transition on function\n"); */
+    context_copy = dup_context(*context);
+    if(context_copy == NULL) {
+      return -1;
+    }
 
-    return trans->action(data, context, trans->local_context);
+    ret = trans->action(data, context_copy, trans->local_context);
+    if(ret >= 0) {
+      /* good transition, keep the new context, free the old one */
+      free_context(*context);
+      *context = context_copy;      
+    } else {
+      /* transition failed, free the new context */
+      free_context(context_copy);
+    }
+    
+
+    return ret;
   } break; 
+
+  case INVALID: {
+    /* this should never really happen in code, its absolutely an
+       error on the programmers part */
+    return -1;
+  } break;
 
   default:
     /* invalid transition type, return -1 */
@@ -171,7 +206,7 @@ static int run_transition(transition *trans, char **data, void *context)
   return -1;
 }
 
-int run_fsm(transition action_table[], char **data, void *context)
+int run_fsm(transition action_table[], char **data, void **context, dup_fn dup_context, free_fn free_context)
 {
   int current_state = 0;
   int nbytes_processed = 0;
@@ -189,26 +224,28 @@ int run_fsm(transition action_table[], char **data, void *context)
     for(current_trans = action_table; 
 	current_trans->current_state != -1;
 	current_trans++) {
-      /* we need a copy of the data pointer because, if a failing
-	 transition happens where some of the data is processed in
-	 another FSM, we can not have that sub-FSM moving our data
-	 pointer, so we give it a copy, and only let ourselves move it
-	 based on the returned amount of processed bytes */
-      char *data_copy = *data;
 
       /* printf("attempting to transition from %s at state %d\n", *data, current_state); */
 
       /* check to see if the current state is right, and the
 	 transition condition succeeds */
       if(current_state == current_trans->current_state) {
+	/* we need a copy of the data pointer because, if a failing
+	   transition happens where some of the data is processed in
+	   another FSM, we can not have that sub-FSM moving our data
+	   pointer, so we give it a copy, and only let ourselves move it
+	   based on the returned amount of processed bytes */
+	char *data_copy = *data;
+	
+
 	/* if we are in a transition moving from our current state.. */
-	if((nbytes_used_transing = run_transition(current_trans, &data_copy, context)) >= 0) {
+	if((nbytes_used_transing = run_transition(current_trans, &data_copy, context, dup_context, free_context)) >= 0) {
 	  /* successful transition! run the function to be executed on
 	     transition (if there is one), then move forward the number
 	     of bytes processed in the input stream */
 	  /* printf("run_transition success\n"); */
 	  if(current_trans->transfn != NULL) {
-	    current_trans->transfn(data, context, current_trans->local_context);
+	    current_trans->transfn(data, nbytes_used_transing, *context, current_trans->local_context);
 	  }
 
 	  /* move forward the number of bytes used transitioning */
