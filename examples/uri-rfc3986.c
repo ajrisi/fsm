@@ -899,8 +899,6 @@ int main(int argc, char **argv)
   int ret;
   uri *parsed_uri;
  
-  uri *d;
-
   /* initialize the URI structure - this needs pointers set to NULL to
      be correct! */
   parsed_uri = malloc(sizeof(uri));
