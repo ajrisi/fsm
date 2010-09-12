@@ -47,7 +47,7 @@ struct setmonth_args {
   int month_num;
 };
 
-void set_month(char **data, void *global_context, void *local_context) 
+void set_month(char **data, int data_used, void *global_context, void *local_context) 
 {
   struct setmonth_args *sma = (struct setmonth_args*)local_context;
   struct tm *tmp = (struct tm*)global_context;
@@ -59,7 +59,7 @@ struct setweekday_args
   int weekday;
 };
 
-void set_weekday(char **date, void *global_context, void *local_context)
+void set_weekday(char **date, int date_len, void *global_context, void *local_context)
 {
   struct setweekday_args *swa = (struct setweekday_args*)local_context;
   struct tm *tmp = (struct tm*)global_context;
@@ -78,7 +78,7 @@ struct settime_args
   } time_component;
 };
 
-void set_time(char **date, void *global_context, void *local_context)
+void set_time(char **date, int time_len, void *global_context, void *local_context)
 {
   struct settime_args *sta = (struct settime_args*)local_context;
   struct tm *tmp = (struct tm*)global_context;
@@ -123,7 +123,7 @@ struct setyear_args
   } year_component;
 };
 
-void set_year(char **date, void *global_context, void *local_context)
+void set_year(char **date, int year_len, void *global_context, void *local_context)
 {
   struct setyear_args *sya = (struct setyear_args*)local_context;
   int *tmp = (int*)global_context;
@@ -163,7 +163,7 @@ int parse_year4(char **data, void *global_context, void *local_context)
   int year = 0;
   int ret;
 
-  ret = run_fsm(year_fsm, data, (void*)&year);
+  ret = run_fsm(year_fsm, data, (void*)&year, NULL, NULL);
   if(ret < 0) {
     return -1;
   }
@@ -184,7 +184,7 @@ int parse_year2(char **data, void *global_context, void *local_context)
   int year = 0;
   int ret;
 
-  ret = run_fsm(year_fsm, data, (void*)&year);
+  ret = run_fsm(year_fsm, data, (void*)&year, NULL, NULL);
   if(ret < 0) {
     return -1;
   }
@@ -200,7 +200,7 @@ struct setdom_args {
   } day_component;
 };
 
-void set_dom(char **date, void *global_context, void *local_context)
+void set_dom(char **date, int dom_len, void *global_context, void *local_context)
 {
   struct setdom_args *sda = (struct setdom_args*)local_context;
   struct tm *tmp = (struct tm*)global_context;
@@ -386,7 +386,7 @@ int main(int argc, char **argv)
 
   printf("Processing %d byte string...\n", (int)strlen(str));
   /* process string through FSM */
-  ret = run_fsm(http_date_fsm, &str, (void*)&parsed_date);
+  ret = run_fsm(http_date_fsm, &str, (void*)&parsed_date, NULL, NULL);
   if(ret < 0) {
     printf("Unable to execute FSM on string: %s\n", str);
     return EXIT_FAILURE;

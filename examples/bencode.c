@@ -25,21 +25,21 @@ int xsp = 0;
 
 
 /* Private functions */
-void make_negative(char **data, void *global_context, void *local_context);
-void read_digit(char **data, void *global_context, void *local_context);
+void make_negative(char **data, int data_len, void *global_context, void *local_context);
+void read_digit(char **data, int data_len, void *global_context, void *local_context);
 int read_string(char **data, void *global_context, void *local_context);
-void read_element(char **data, void *global_context, void *local_context);
-void read_key(char **data, void *global_context, void *local_context);
-void read_value(char **data, void *global_context, void *local_context);
+void read_element(char **data, int data_len, void *global_context, void *local_context);
+void read_key(char **data, int data_len, void *global_context, void *local_context);
+void read_value(char **data, int data_len, void *global_context, void *local_context);
 
-void start_dict(char **data, void *global_context, void *local_context);
-void end_dict(char **data, void *global_context, void *local_context);
+void start_dict(char **data, int data_len, void *global_context, void *local_context);
+void end_dict(char **data, int data_len, void *global_context, void *local_context);
 
-void start_list(char **data, void *global_context, void *local_context);
-void end_list(char **data, void *global_context, void *local_context);
+void start_list(char **data, int data_len, void *global_context, void *local_context);
+void end_list(char **data, int data_len, void *global_context, void *local_context);
 
-void integer_start(char **data, void *global_context, void *local_context);
-void integer_finish(char **data, void *global_context, void *local_context);
+void integer_start(char **data, int data_len, void *global_context, void *local_context);
+void integer_finish(char **data, int data_len, void *global_context, void *local_context);
 
 void printxsp();
 
@@ -132,13 +132,13 @@ transition bencode_fsm[] =
     {-1}
   };
 
-void make_negative(char **data, void *global_context, void *local_context)
+void make_negative(char **data, int data_len, void *global_context, void *local_context)
 {
   struct bencode_context *bc = (struct bencode_context*)global_context;
   bc->int_is_neg = 1;
 }
 
-void read_digit(char **data, void *global_context, void *local_context)
+void read_digit(char **data, int data_len, void *global_context, void *local_context)
 {
   struct bencode_context *bc = (struct bencode_context*)global_context;
   bc->int_value *= 10;
@@ -165,31 +165,31 @@ int read_string(char **data, void *global_context, void *local_context)
   return strlen;
 }
 
-void read_element(char **data, void *global_context, void *local_context)
+void read_element(char **data, int data_len, void *global_context, void *local_context)
 {
   printf("\n");
 }
 
-void read_key(char **data, void *global_context, void *local_context)
+void read_key(char **data, int data_len, void *global_context, void *local_context)
 {
   printf(" => \n");
   xsp++;
 }
 
-void read_value(char **data, void *global_context, void *local_context)
+void read_value(char **data, int data_len, void *global_context, void *local_context)
 {
   printf("\n");
   xsp--;
 }
 
-void start_dict(char **data, void *global_context, void *local_context)
+void start_dict(char **data, int data_len, void *global_context, void *local_context)
 {
   printxsp();
   printf("{\n");
   xsp++;
 }
 
-void end_dict(char **data, void *global_context, void *local_context)
+void end_dict(char **data, int data_len, void *global_context, void *local_context)
 {
   xsp--;
   printxsp();
@@ -197,14 +197,14 @@ void end_dict(char **data, void *global_context, void *local_context)
   
 }
 
-void start_list(char **data, void *global_context, void *local_context)
+void start_list(char **data, int data_len, void *global_context, void *local_context)
 {
   printxsp();
   printf("[\n");
   xsp++;
 }
 
-void end_list(char **data, void *global_context, void *local_context)
+void end_list(char **data, int data_len, void *global_context, void *local_context)
 {
   xsp--;
   printxsp();
@@ -212,11 +212,11 @@ void end_list(char **data, void *global_context, void *local_context)
   
 }
 
-void integer_start(char **data, void *global_context, void *local_context)
+void integer_start(char **data, int data_len, void *global_context, void *local_context)
 {
 }
 
-void integer_finish(char **data, void *global_context, void *local_context)
+void integer_finish(char **data, int data_len, void *global_context, void *local_context)
 {
   struct bencode_context *bc = (struct bencode_context*)global_context; 
   printxsp();
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 
   printf("Processing %d byte string...\n", (int)strlen(str));
   /* process string through FSM */
-  ret = run_fsm(bencode_fsm, &str, (void*)&context);
+  ret = run_fsm(bencode_fsm, &str, (void*)&context, NULL, NULL);
   if(ret < 0) {
     printf("Unable to execute FSM on string: %s\n", str);
   } else {

@@ -446,7 +446,7 @@ int main(int argc, char **argv)
 
   printf("Processing %d byte string...\n", (int)strlen(str));
   /* process string through FSM */
-  ret = run_fsm(uri_reference_fsm, &str, NULL);
+  ret = run_fsm(uri_reference_fsm, &str, NULL, NULL, NULL);
   if(ret < 0) {
     printf("Unable to execute FSM on string: %s\n", str);
     return EXIT_FAILURE;

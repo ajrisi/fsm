@@ -16,7 +16,7 @@
 #include <string.h>
 #include <fsm.h>
 
-void print_whitespace(char **data, void *notused, void *notused2)
+void print_whitespace(char **data, int data_used, void *notused, void *notused2)
 {
   printf(" WHITESPACE ");
 }
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
   fgets(str, 255, stdin);
 
   /* process string through FSM */
-  ret = run_fsm(whitespace_fsm, &str, NULL);
+  ret = run_fsm(whitespace_fsm, &str, NULL, NULL, NULL);
   if(ret < 0) {
     printf("Unable to execute FSM on string: %s\n", str);
   } else {
