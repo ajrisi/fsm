@@ -271,11 +271,7 @@ int run_fsm(transition action_table[], char **data, void **context, dup_fn dup_c
 	     of bytes processed in the input stream */
 	  /* printf("run_transition success\n"); */
 	  if(current_trans->transfn != NULL) {
-	    if(context == NULL) {
-	      current_trans->transfn(data, nbytes_used_transing, NULL, current_trans->local_context);
-	    } else {
-	      current_trans->transfn(data, nbytes_used_transing, *context, current_trans->local_context);
-	    }
+	    current_trans->transfn(data, nbytes_used_transing, (context == NULL) ? NULL : *context, current_trans->local_context);
 	  }
 
 	  /* move forward the number of bytes used transitioning */
