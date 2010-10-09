@@ -40,6 +40,7 @@ int main(int argc, char **argv)
     {-1}
   };
   char *str;
+  char *ostr;
   int ret;
 
   /* read a string from the user */
@@ -48,6 +49,7 @@ int main(int argc, char **argv)
     printf("Unable to allocate string storage space.\n");
     return 1;
   }
+  ostr = str;
   printf("Please enter a string containing whitespace:\n");
   fgets(str, 255, stdin);
 
@@ -59,5 +61,6 @@ int main(int argc, char **argv)
     printf("\nFSM Done - processed %d characters.\n", ret);
   }
 
+  free(ostr);
   return 0;
 }
