@@ -179,8 +179,9 @@ static int run_transition(transition *trans, char **data, void **context, dup_fn
     if(trans->action == NULL) {
       return -1;
     }
-
-    if(dup_context != NULL) {
+    
+    if((dup_context != NULL) &&
+       (context != NULL)) {
       context_copy = dup_context(*context);
       if(context_copy == NULL) {
 	/* there was a problem with making a copy of the context - abort! */
@@ -188,16 +189,22 @@ static int run_transition(transition *trans, char **data, void **context, dup_fn
       }
     } else {
       /* there was no context-copy function, so just set the copy to the original */
-      context_copy = *context;
+      if(context != NULL) {
+	context_copy = *context;
+      } else {
+	context_copy = NULL;
+      }
     }
     
     ret = trans->action(data, context_copy, trans->local_context);
     if(ret >= 0) {
       /* good transition, keep the new context, free the old one */
-      if(free_context != NULL) {
-	free_context(*context);
-      }
-      *context = context_copy;      
+      if(context != NULL) {
+	if(free_context != NULL) {
+	  free_context(*context);
+	}
+	*context = context_copy;
+      }      
     } else {
       /* transition failed, free the new context */
       if(free_context != NULL) {
@@ -264,7 +271,11 @@ int run_fsm(transition action_table[], char **data, void **context, dup_fn dup_c
 	     of bytes processed in the input stream */
 	  /* printf("run_transition success\n"); */
 	  if(current_trans->transfn != NULL) {
-	    current_trans->transfn(data, nbytes_used_transing, *context, current_trans->local_context);
+	    if(context == NULL) {
+	      current_trans->transfn(data, nbytes_used_transing, NULL, current_trans->local_context);
+	    } else {
+	      current_trans->transfn(data, nbytes_used_transing, *context, current_trans->local_context);
+	    }
 	  }
 
 	  /* move forward the number of bytes used transitioning */

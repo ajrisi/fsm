@@ -35,8 +35,8 @@ int print_char(char **data, void *notused, void *notused2)
 int main(int argc, char **argv)
 {
   transition whitespace_fsm[] = {
-    {0, SINGLE_CHARACTER("\n\r \t"),      0, -1, NORMAL, print_whitespace},
-    {0, FUNCTION(print_char),             0, -1, NORMAL                  },
+    {0, SINGLE_CHARACTER("\n\r \t"),      0, -1, ACCEPT, print_whitespace},
+    {0, FUNCTION(print_char),             0, -1, ACCEPT                  },
     {-1}
   };
   char *str;
