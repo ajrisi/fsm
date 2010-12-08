@@ -129,7 +129,8 @@ static int run_transition(transition *trans, char **data, void **context, dup_fn
     /* make a copy of the context so that if the sub-FSM succeeds,
        then we keep the new copy, and if it fails, we keep the old
        one */
-    if(dup_context != NULL) {
+    if((dup_context != NULL) && 
+       (context != NULL)) {
       context_copy = dup_context(*context);
       if(context_copy == NULL) {
 	/* there was a problem with making a copy of the context - abort! */
@@ -137,7 +138,11 @@ static int run_transition(transition *trans, char **data, void **context, dup_fn
       }
     } else {
       /* there was no context-copy function, so just set the copy to the original */
-      context_copy = *context;
+      if(context != NULL) {
+	context_copy = *context;
+      } else {
+	context_copy = NULL;
+      }
     }
 
     /* run the sub FSM on the copy of the context */
@@ -145,10 +150,12 @@ static int run_transition(transition *trans, char **data, void **context, dup_fn
 
     if(ret >= 0) {
       /* successful sub FSM  - keep the new context and free the old one */
-      if(free_context != NULL) {
-	free_context(*context);
+      if(context != NULL) {
+	if(free_context != NULL) {
+	  free_context(*context);
+	}
+	*context = context_copy;
       }
-      *context = context_copy;
 
 #ifdef FSM_DEBUG
       if(trans->transition_name != NULL) {
@@ -180,20 +187,20 @@ static int run_transition(transition *trans, char **data, void **context, dup_fn
       return -1;
     }
     
-    if((dup_context != NULL) &&
-       (context != NULL)) {
-      context_copy = dup_context(*context);
-      if(context_copy == NULL) {
-	/* there was a problem with making a copy of the context - abort! */
-	return -1;
+    if(context != NULL) {
+      if(dup_context != NULL) {
+	context_copy = dup_context(*context);
+	if(context_copy == NULL) {
+	  /* there was a problem with making a copy of the context - abort! */
+	  return -1;
+	}
+      } else {
+      /* there was no context-copy function, so just set the copy to the original */
+ 	context_copy = *context;
       }
     } else {
-      /* there was no context-copy function, so just set the copy to the original */
-      if(context != NULL) {
-	context_copy = *context;
-      } else {
-	context_copy = NULL;
-      }
+      /* there was no context, so set the copy to NULL as well */
+      context_copy = NULL;
     }
     
     ret = trans->action(data, context_copy, trans->local_context);
