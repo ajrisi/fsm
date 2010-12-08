@@ -31,6 +31,7 @@ struct uri_s {
 static void set_scheme(char **uri_string, int scheme_len, void *global_context, void *local_context);
 static void set_userinfo(char **uri_string, int userinfo_len, void *global_context, void *local_context);
 static void set_host(char **uri_string, int host_len, void *global_context, void *local_context);
+static void check_host_is_ip(char **uri_string, int ip_length, void *global_context, void *local_context);
 static void set_host_is_ip(char **uri_string, int not_used, void *global_context, void *local_context);
 static void set_port(char **uri_string, int port_len, void *global_context, void *local_context);
 static void set_path(char **uri_string, int path_len, void *global_context, void *local_context);
@@ -346,7 +347,7 @@ transition ipv4address_fsm[] =
     {4, FSM(dec_octet_fsm), 5, -1 },
     {5, EXACT_STRING("."), 6, -1 },
 
-    {6, FSM(dec_octet_fsm), 7, -1, ACCEPT },
+    {6, FSM(dec_octet_fsm), -1, -1, ACCEPT },
 
     {-1}
   };
@@ -584,8 +585,12 @@ transition port_fsm[] =
 transition host_fsm[] =
     {
       {0, FSM(ip_literal_fsm),  -1, -1, ACCEPT, set_host_is_ip, NULL, "ip literal"},
-      {0, FSM(ipv4address_fsm), -1, -1, ACCEPT, set_host_is_ip, NULL, "ipv4address"},      
-      {0, FSM(reg_name_fsm),    -1, -1, ACCEPT, NULL, NULL, "reg name"},      
+      
+      /* this poses a parsing problem - all IPv4 addresses are valid
+	 reg_name as well. Fix this by doing the reg_name_fsm now,
+	 then on match, do a function to check if its an IPv4
+	 address */
+      {0, FSM(reg_name_fsm),    -1, -1, ACCEPT, check_host_is_ip, NULL, "reg name"},      
       {-1}
     };
 
@@ -776,6 +781,17 @@ static void set_host_is_ip(char **uri_string, int not_used, void *global_context
 {
   uri *u = (uri*)global_context;
   u->host_is_ip = 1;
+}
+
+static void check_host_is_ip(char **uri_string, int ip_length, void *global_context, void *local_context)
+{
+  int ret;
+ 
+  ret = run_fsm(ipv4address_fsm, uri_string, NULL, NULL, NULL);
+  if(ret == ip_length) {
+    set_host_is_ip(uri_string, ip_length, global_context, local_context);
+  }
+  printf("VERIFY IS %s(%d) and IP ADDRESS?\n", *uri_string, ip_length);
 }
 
 static void set_port(char **uri_string, int port_len, void *global_context, void *local_context)
