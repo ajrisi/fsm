@@ -791,7 +791,6 @@ static void check_host_is_ip(char **uri_string, int ip_length, void *global_cont
   if(ret == ip_length) {
     set_host_is_ip(uri_string, ip_length, global_context, local_context);
   }
-  printf("VERIFY IS %s(%d) and IP ADDRESS?\n", *uri_string, ip_length);
 }
 
 static void set_port(char **uri_string, int port_len, void *global_context, void *local_context)
